@@ -310,6 +310,178 @@ body { font-family: 'Nunito', sans-serif; background: var(--bg); color: var(--te
 .loading-screen { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 9998; flex-direction: column; gap: 16px; }
 .loading-screen.hidden { display: none; }
 .loading-screen p { color: var(--muted); font-size: 0.88rem; }
+
+/* ════════════════════════════════════════════
+   RESPONSIVO — MOBILE (max 768px)
+════════════════════════════════════════════ */
+@media (max-width: 768px) {
+
+  /* Topbar compacta */
+  .topbar { padding: 0 12px; height: 52px; gap: 8px; }
+  .topbar-brand { font-size: 1rem; }
+  .topbar-filters { display: none; } /* filtros vão para o drawer */
+  .current-user-name { display: none; }
+  .btn-new-activity { display: none; } /* substituído pelo FAB */
+
+  /* App body — sem sidebar visível por padrão */
+  .app-body { position: relative; }
+
+  /* Sidebar vira drawer lateral */
+  .sidebar {
+    position: fixed;
+    top: 52px; left: 0; bottom: 0;
+    width: 80vw; max-width: 300px;
+    z-index: 200;
+    transform: translateX(-100%);
+    transition: transform 0.28s ease;
+    box-shadow: 4px 0 24px rgba(0,0,0,0.4);
+  }
+  .sidebar.open { transform: translateX(0); }
+
+  /* Overlay escuro ao abrir drawer */
+  .drawer-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.5);
+    z-index: 199;
+    backdrop-filter: blur(2px);
+  }
+  .drawer-overlay.open { display: block; }
+
+  /* Kanban mobile — uma coluna por vez */
+  .kanban-area {
+    padding: 0;
+    gap: 0;
+    overflow: hidden;
+    flex-direction: column;
+  }
+
+  .kanban-col {
+    width: 100vw;
+    min-width: 100vw;
+    height: calc(100vh - 52px - 56px); /* topbar + bottom nav */
+    max-height: calc(100vh - 52px - 56px);
+    border-radius: 0;
+    border-left: none;
+    border-right: none;
+    border-top: none;
+    display: none; /* esconde todas por padrão */
+    animation: none;
+  }
+  .kanban-col.mobile-active { display: flex; } /* mostra só a ativa */
+
+  /* Navegação inferior dos dias */
+  .mobile-day-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    position: fixed;
+    bottom: 0; left: 0; right: 0;
+    height: 56px;
+    background: var(--bg2);
+    border-top: 1px solid var(--border);
+    z-index: 100;
+    padding: 0 8px;
+    gap: 4px;
+  }
+  .mobile-day-btn {
+    flex: 1;
+    height: 40px;
+    border-radius: 10px;
+    background: transparent;
+    border: none;
+    color: var(--muted);
+    font-family: 'Nunito', sans-serif;
+    font-size: 0.65rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 2px;
+    transition: all 0.15s;
+    position: relative;
+  }
+  .mobile-day-btn.active {
+    background: rgba(233,69,96,0.15);
+    color: var(--accent);
+  }
+  .mobile-day-btn.today-dot::after {
+    content: '';
+    width: 4px; height: 4px;
+    border-radius: 50%;
+    background: var(--accent);
+    position: absolute;
+    top: 4px;
+  }
+  .mobile-day-count {
+    font-size: 0.6rem;
+    opacity: 0.7;
+  }
+
+  /* FAB — botão flutuante de nova atividade */
+  .fab {
+    display: flex;
+    position: fixed;
+    bottom: 68px; right: 16px;
+    width: 52px; height: 52px;
+    border-radius: 50%;
+    background: var(--accent);
+    color: #fff;
+    font-size: 1.5rem;
+    align-items: center;
+    justify-content: center;
+    box-shadow: 0 4px 20px rgba(233,69,96,0.5);
+    cursor: pointer;
+    z-index: 150;
+    border: none;
+    transition: transform 0.2s;
+  }
+  .fab:active { transform: scale(0.92); }
+
+  /* Botão hamburguer na topbar */
+  .mobile-menu-btn {
+    display: flex;
+    width: 36px; height: 36px;
+    border-radius: 9px;
+    background: var(--surface);
+    border: 1px solid var(--border);
+    color: var(--text);
+    font-size: 1rem;
+    align-items: center;
+    justify-content: center;
+    cursor: pointer;
+    flex-shrink: 0;
+  }
+
+  /* Modais ocupam tela cheia no mobile */
+  .modal-box {
+    width: 100vw;
+    max-width: 100vw;
+    max-height: 95vh;
+    border-radius: 20px 20px 0 0;
+    position: fixed;
+    bottom: 0;
+    margin: 0;
+  }
+  .overlay { align-items: flex-end; }
+  .confirm-box { width: 90vw; }
+
+  /* Post-it actions sempre visíveis no mobile (sem hover) */
+  .postit-actions { opacity: 1; }
+
+  /* Col cards com padding bottom para não ficar atrás do FAB */
+  .col-cards { padding-bottom: 16px; }
+}
+
+/* Desktop — esconde elementos mobile */
+@media (min-width: 769px) {
+  .mobile-day-nav { display: none; }
+  .fab { display: none; }
+  .mobile-menu-btn { display: none; }
+  .drawer-overlay { display: none !important; }
+}
 </style>
 </head>
 <body>
@@ -384,6 +556,7 @@ body { font-family: 'Nunito', sans-serif; background: var(--bg); color: var(--te
 ════════════════════════════════ -->
 <div class="screen" id="screenApp">
   <div class="topbar">
+    <button class="mobile-menu-btn" onclick="toggleDrawer()" title="Menu">☰</button>
     <div class="topbar-brand">Família<span>Kanban</span></div>
     <div class="topbar-filters" id="topbarFilters">
       <div class="filter-chip" id="chipPeriod" onclick="openPeriodFilter()">📅 Período</div>
@@ -401,8 +574,9 @@ body { font-family: 'Nunito', sans-serif; background: var(--bg); color: var(--te
     </div>
   </div>
 
+  <div class="drawer-overlay" id="drawerOverlay" onclick="toggleDrawer()"></div>
   <div class="app-body">
-    <div class="sidebar">
+    <div class="sidebar" id="mobileSidebar">
       <div class="sidebar-section">
         <h4>Membros</h4>
         <div id="sidebarMembers"></div>
@@ -419,6 +593,10 @@ body { font-family: 'Nunito', sans-serif; background: var(--bg); color: var(--te
 
     <div class="kanban-area" id="kanbanBoard"></div>
   </div>
+  <!-- Navegação mobile por dia -->
+  <div class="mobile-day-nav" id="mobileDayNav"></div>
+  <!-- FAB mobile -->
+  <button class="fab" onclick="openNewActivity()" title="Nova atividade">+</button>
 </div>
 
 <!-- ══════════════════════════════
@@ -617,7 +795,7 @@ body { font-family: 'Nunito', sans-serif; background: var(--bg); color: var(--te
 //  CONFIG
 // ═══════════════════════════════════════════════════════
 // ⚠️ Altere para o endereço do seu backend
-const API = 'https://familiakanban-production.up.railway.app/api';
+const API = 'http://localhost:3001/api';
 
 const DAYS_FULL  = ['Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado','Domingo'];
 const DAYS_SHORT = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
@@ -1627,6 +1805,81 @@ async function init() {
 }
 
 init();
+
+// ═══════════════════════════════════════════════════
+//  MOBILE — Navegação por dia e drawer
+// ═══════════════════════════════════════════════════
+let mobileDayIndex = 0;
+
+function isMobile() { return window.innerWidth <= 768; }
+
+function toggleDrawer() {
+  const sidebar = document.getElementById('mobileSidebar');
+  const overlay = document.getElementById('drawerOverlay');
+  sidebar.classList.toggle('open');
+  overlay.classList.toggle('open');
+}
+
+function renderMobileDayNav() {
+  if (!isMobile()) return;
+  const nav = document.getElementById('mobileDayNav');
+  if (!nav) return;
+  const today = getTodayDayIndex();
+  const visible = getFilteredActivities();
+  nav.innerHTML = '';
+  DAYS_SHORT.forEach((d, i) => {
+    const count = visible.filter(a => (a.days||[]).includes(i)).length;
+    const btn = document.createElement('button');
+    btn.className = 'mobile-day-btn' +
+      (i === mobileDayIndex ? ' active' : '') +
+      (i === today ? ' today-dot' : '');
+    btn.innerHTML = `<span>${d}</span><span class="mobile-day-count">${count > 0 ? count : ''}</span>`;
+    btn.onclick = () => setMobileDay(i);
+    nav.appendChild(btn);
+  });
+}
+
+function setMobileDay(idx) {
+  mobileDayIndex = idx;
+  // Mostra só a coluna do dia selecionado
+  document.querySelectorAll('.kanban-col').forEach((col, i) => {
+    col.classList.toggle('mobile-active', i === idx);
+  });
+  renderMobileDayNav();
+}
+
+function applyMobileLayout() {
+  if (!isMobile()) return;
+  // Inicializa no dia de hoje ou no primeiro dia
+  const today = getTodayDayIndex();
+  mobileDayIndex = today;
+  setMobileDay(mobileDayIndex);
+  renderMobileDayNav();
+}
+
+// Override renderBoard para aplicar mobile após renderizar
+const _origRenderBoard = renderBoard;
+renderBoard = function() {
+  _origRenderBoard();
+  if (isMobile()) {
+    applyMobileLayout();
+  }
+};
+
+// Ao redimensionar janela
+window.addEventListener('resize', () => {
+  if (isMobile()) {
+    applyMobileLayout();
+  } else {
+    // Desktop: mostra todas as colunas
+    document.querySelectorAll('.kanban-col').forEach(col => {
+      col.classList.remove('mobile-active');
+    });
+    const nav = document.getElementById('mobileDayNav');
+    if (nav) nav.innerHTML = '';
+  }
+});
+
 </script>
 </body>
 </html>
