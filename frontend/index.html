@@ -1,0 +1,1632 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>FamíliaKanban</title>
+<link href="https://fonts.googleapis.com/css2?family=Playfair+Display:wght@700;900&family=Nunito:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+<style>
+:root {
+  --bg:      #1a1a2e;
+  --bg2:     #16213e;
+  --card:    #0f3460;
+  --card2:   #1a2744;
+  --surface: #243358;
+  --border:  rgba(255,255,255,0.08);
+  --text:    #e8eaf6;
+  --muted:   #8892b0;
+  --accent:  #e94560;
+  --accent2: #0f9b8e;
+  --gold:    #f5c842;
+  --radius:  14px;
+  --shadow:  0 8px 32px rgba(0,0,0,0.35);
+}
+* { box-sizing: border-box; margin: 0; padding: 0; }
+body { font-family: 'Nunito', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow: hidden; }
+
+/* ── SCREENS ── */
+.screen { display: none; width: 100vw; height: 100vh; }
+.screen.active { display: flex; }
+
+/* ════════════════════════════
+   SETUP
+════════════════════════════ */
+#screenSetup {
+  flex-direction: column; align-items: center; justify-content: center;
+  background: radial-gradient(ellipse at 30% 20%, #1e3a5f 0%, var(--bg) 60%);
+  gap: 32px;
+}
+.setup-card {
+  background: var(--card2); border: 1px solid var(--border);
+  border-radius: 24px; padding: 40px; width: 420px; max-width: 95vw;
+  box-shadow: var(--shadow);
+}
+.setup-card h2 { font-family: 'Playfair Display', serif; font-size: 1.6rem; margin-bottom: 6px; }
+.setup-card .subtitle { color: var(--muted); font-size: 0.88rem; margin-bottom: 28px; }
+
+/* ════════════════════════════
+   LOGIN
+════════════════════════════ */
+#screenLogin {
+  flex-direction: column; align-items: center; justify-content: center;
+  background: radial-gradient(ellipse at 30% 20%, #1e3a5f 0%, var(--bg) 60%),
+              radial-gradient(ellipse at 80% 80%, #2d1b4e 0%, transparent 50%);
+  gap: 48px;
+}
+.login-brand { text-align: center; }
+.login-brand h1 { font-family: 'Playfair Display', serif; font-size: 3rem; font-weight: 900; }
+.login-brand h1 span { color: var(--accent); }
+.login-brand p { color: var(--muted); font-size: 1rem; margin-top: 6px; }
+.profiles-grid { display: flex; gap: 20px; flex-wrap: wrap; justify-content: center; max-width: 720px; }
+
+.profile-card {
+  background: var(--card2); border: 1.5px solid var(--border);
+  border-radius: 20px; padding: 28px 20px; text-align: center;
+  cursor: pointer; transition: all 0.25s; width: 136px; position: relative;
+}
+.profile-card:hover { transform: translateY(-6px); border-color: rgba(255,255,255,0.2); box-shadow: 0 16px 40px rgba(0,0,0,0.4); }
+.profile-avatar { width: 60px; height: 60px; border-radius: 50%; margin: 0 auto 12px; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; font-weight: 800; color: #fff; }
+.profile-name { font-weight: 700; font-size: 0.92rem; }
+.profile-admin-badge { position: absolute; top: 10px; right: 10px; background: var(--gold); color: #333; font-size: 0.55rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; padding: 2px 6px; border-radius: 20px; }
+
+.profile-add-card {
+  background: transparent; border: 2px dashed rgba(255,255,255,0.15);
+  border-radius: 20px; padding: 28px 20px; text-align: center; cursor: pointer;
+  transition: all 0.25s; width: 136px; display: flex; flex-direction: column;
+  align-items: center; justify-content: center; gap: 10px; color: var(--muted); font-size: 0.85rem; font-weight: 600;
+}
+.profile-add-card:hover { border-color: var(--accent); color: var(--accent); }
+
+/* ════════════════════════════
+   APP
+════════════════════════════ */
+#screenApp { flex-direction: column; overflow: hidden; }
+
+/* ── Topbar ── */
+.topbar { display: flex; align-items: center; gap: 14px; padding: 0 20px; height: 56px; background: var(--bg2); border-bottom: 1px solid var(--border); flex-shrink: 0; z-index: 50; }
+.topbar-brand { font-family: 'Playfair Display', serif; font-size: 1.15rem; font-weight: 900; white-space: nowrap; }
+.topbar-brand span { color: var(--accent); }
+
+.topbar-filters { display: flex; align-items: center; gap: 6px; flex: 1; overflow-x: auto; padding: 2px 0; }
+.topbar-filters::-webkit-scrollbar { height: 2px; }
+
+.filter-chip { display: flex; align-items: center; gap: 4px; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 4px 12px; font-size: 0.73rem; font-weight: 600; color: var(--muted); cursor: pointer; white-space: nowrap; transition: all 0.15s; user-select: none; }
+.filter-chip:hover { border-color: var(--accent); color: var(--text); }
+.filter-chip.active { background: rgba(233,69,96,0.15); border-color: var(--accent); color: var(--accent); }
+.filter-sep { width: 1px; height: 18px; background: var(--border); flex-shrink: 0; }
+
+.topbar-right { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+.current-user-pill { display: flex; align-items: center; gap: 7px; background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 4px 12px 4px 5px; cursor: pointer; transition: border-color 0.15s; }
+.current-user-pill:hover { border-color: rgba(255,255,255,0.2); }
+.current-user-mini { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.6rem; font-weight: 800; color: #fff; }
+.current-user-name { font-size: 0.8rem; font-weight: 700; }
+.btn-new-activity { background: var(--accent); color: #fff; border: none; border-radius: 10px; padding: 7px 14px; font-family: 'Nunito', sans-serif; font-size: 0.8rem; font-weight: 700; cursor: pointer; transition: all 0.2s; white-space: nowrap; }
+.btn-new-activity:hover { background: #c73652; transform: translateY(-1px); }
+
+/* ── App body ── */
+.app-body { display: flex; flex: 1; overflow: hidden; }
+
+/* ── Sidebar ── */
+.sidebar { width: 210px; min-width: 210px; background: var(--bg2); border-right: 1px solid var(--border); display: flex; flex-direction: column; overflow-y: auto; padding: 14px 10px; gap: 18px; }
+.sidebar::-webkit-scrollbar { width: 3px; }
+.sidebar-section h4 { font-size: 0.62rem; font-weight: 800; text-transform: uppercase; letter-spacing: 1px; color: var(--muted); margin-bottom: 9px; padding-left: 5px; }
+
+.sidebar-member { display: flex; align-items: center; gap: 7px; padding: 6px 7px; border-radius: 9px; cursor: pointer; transition: background 0.15s; user-select: none; }
+.sidebar-member:hover { background: var(--surface); }
+.sidebar-member.active { background: var(--surface); }
+.sidebar-member-av { width: 24px; height: 24px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.55rem; font-weight: 800; color: #fff; flex-shrink: 0; }
+.sidebar-member-name { font-size: 0.8rem; font-weight: 600; flex: 1; }
+.sidebar-member-check { width: 12px; height: 12px; border-radius: 50%; border: 2px solid var(--border); transition: all 0.2s; }
+.sidebar-member.active .sidebar-member-check { background: var(--accent2); border-color: var(--accent2); }
+
+.tags-cloud { display: flex; flex-wrap: wrap; gap: 4px; }
+.tag-pill { background: var(--surface); border: 1px solid var(--border); border-radius: 20px; padding: 2px 9px; font-size: 0.7rem; font-weight: 600; color: var(--muted); cursor: pointer; transition: all 0.15s; }
+.tag-pill:hover, .tag-pill.active { background: rgba(233,69,96,0.15); border-color: var(--accent); color: var(--accent); }
+
+.sidebar-bottom { margin-top: auto; display: flex; flex-direction: column; gap: 2px; }
+.sidebar-action-btn { display: flex; align-items: center; gap: 7px; padding: 8px 8px; border-radius: 9px; cursor: pointer; font-size: 0.8rem; font-weight: 600; transition: all 0.15s; border: none; background: transparent; width: 100%; font-family: 'Nunito', sans-serif; color: var(--muted); }
+.sidebar-action-btn:hover { background: var(--surface); color: var(--text); }
+.sidebar-action-btn.gold { color: var(--gold); }
+.sidebar-action-btn.gold:hover { background: rgba(245,200,66,0.1); }
+
+/* ── Kanban Board ── */
+.kanban-area { flex: 1; overflow-x: auto; overflow-y: hidden; padding: 14px 18px; display: flex; gap: 12px; align-items: stretch; }
+.kanban-area::-webkit-scrollbar { height: 5px; }
+.kanban-area::-webkit-scrollbar-thumb { background: var(--surface); border-radius: 10px; }
+
+.kanban-col { background: var(--card2); border: 1px solid var(--border); border-radius: var(--radius); width: 242px; min-width: 242px; display: flex; flex-direction: column; height: calc(100vh - 98px); max-height: calc(100vh - 98px); flex-shrink: 0; animation: colSlide 0.3s ease forwards; }
+@keyframes colSlide { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+.col-header { padding: 11px 13px 9px; border-bottom: 1px solid var(--border); display: flex; align-items: center; gap: 7px; flex-shrink: 0; }
+.col-day-name { font-family: 'Playfair Display', serif; font-weight: 700; font-size: 0.95rem; flex: 1; }
+.col-today-badge { background: var(--accent); color: #fff; font-size: 0.58rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; padding: 2px 6px; border-radius: 20px; }
+.col-count { background: var(--surface); color: var(--muted); font-size: 0.65rem; font-weight: 700; padding: 2px 7px; border-radius: 20px; }
+.col-add-btn { width: 24px; height: 24px; border-radius: 7px; background: transparent; border: none; color: var(--muted); font-size: 1rem; cursor: pointer; display: flex; align-items: center; justify-content: center; transition: all 0.15s; flex-shrink: 0; }
+.col-add-btn:hover { background: var(--surface); color: var(--text); }
+
+.col-cards { padding: 8px; display: flex; flex-direction: column; gap: 7px; overflow-y: auto; flex: 1; min-height: 0; }
+.col-cards::-webkit-scrollbar { width: 3px; }
+.col-empty { text-align: center; color: var(--muted); font-size: 0.75rem; padding: 20px 10px; opacity: 0.5; }
+
+/* ── Post-it ── */
+.postit { border-radius: 11px; padding: 11px 12px; cursor: pointer; position: relative; animation: stickyIn 0.2s ease; transition: transform 0.2s, box-shadow 0.2s; color: #1a1a2e; box-shadow: 2px 3px 10px rgba(0,0,0,0.25); }
+@keyframes stickyIn { from { opacity: 0; transform: scale(0.88) rotate(-1deg); } to { opacity: 1; transform: scale(1) rotate(0); } }
+.postit:hover { transform: translateY(-2px) rotate(0.3deg); box-shadow: 3px 7px 18px rgba(0,0,0,0.3); }
+.postit.done { opacity: 0.5; }
+.postit.done .postit-title { text-decoration: line-through; }
+
+.postit-top { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 5px; }
+.postit-title { font-weight: 700; font-size: 0.83rem; line-height: 1.3; flex: 1; margin-right: 5px; }
+.postit-actions { display: flex; gap: 1px; opacity: 0; transition: opacity 0.15s; }
+.postit:hover .postit-actions { opacity: 1; }
+.postit-action { width: 20px; height: 20px; border-radius: 5px; background: rgba(0,0,0,0.1); border: none; cursor: pointer; display: flex; align-items: center; justify-content: center; font-size: 0.65rem; color: rgba(0,0,0,0.5); transition: background 0.15s; }
+.postit-action:hover { background: rgba(0,0,0,0.22); color: #000; }
+
+.postit-desc { font-size: 0.73rem; opacity: 0.7; line-height: 1.4; margin-bottom: 7px; }
+.postit-time { display: flex; align-items: center; gap: 3px; font-size: 0.7rem; font-weight: 700; opacity: 0.6; margin-bottom: 6px; }
+.postit-date { display: inline-flex; align-items: center; gap: 3px; font-size: 0.7rem; font-weight: 700; background: rgba(0,0,0,0.12); border-radius: 5px; padding: 2px 7px; margin-bottom: 6px; }
+.postit-tags { display: flex; flex-wrap: wrap; gap: 3px; margin-bottom: 7px; }
+.postit-tag { background: rgba(0,0,0,0.12); border-radius: 4px; padding: 1px 5px; font-size: 0.62rem; font-weight: 700; opacity: 0.8; cursor: pointer; }
+.postit-tag:hover { opacity: 1; }
+.postit-footer { display: flex; align-items: center; justify-content: space-between; }
+.postit-members { display: flex; }
+.postit-member-av { width: 18px; height: 18px; border-radius: 50%; border: 2px solid rgba(255,255,255,0.5); display: flex; align-items: center; justify-content: center; font-size: 0.5rem; font-weight: 800; color: #fff; margin-left: -4px; }
+.postit-member-av:first-child { margin-left: 0; }
+.postit-badges { display: flex; gap: 3px; align-items: center; }
+.badge-recurrent { font-size: 0.6rem; background: rgba(0,0,0,0.12); border-radius: 4px; padding: 1px 4px; font-weight: 700; opacity: 0.7; }
+.badge-comments { font-size: 0.62rem; opacity: 0.6; display: flex; align-items: center; gap: 2px; }
+
+/* ════════════════════════════
+   FORMS / BUTTONS
+════════════════════════════ */
+.form-group { margin-bottom: 14px; }
+.form-group label { display: block; font-size: 0.68rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.8px; color: var(--muted); margin-bottom: 5px; }
+.form-group input,
+.form-group select,
+.form-group textarea { width: 100%; background: var(--surface); border: 1.5px solid var(--border); border-radius: 9px; padding: 9px 13px; font-family: 'Nunito', sans-serif; font-size: 0.88rem; color: var(--text); outline: none; transition: border-color 0.2s, box-shadow 0.2s; }
+.form-group input:focus,
+.form-group select:focus,
+.form-group textarea:focus { border-color: var(--accent); box-shadow: 0 0 0 3px rgba(233,69,96,0.12); }
+.form-group textarea { resize: vertical; min-height: 66px; }
+.form-group select option { background: var(--card2); }
+
+.form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+
+.btn { display: inline-flex; align-items: center; justify-content: center; gap: 5px; border: none; border-radius: 9px; padding: 9px 18px; font-family: 'Nunito', sans-serif; font-size: 0.85rem; font-weight: 700; cursor: pointer; transition: all 0.2s; }
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: #c73652; transform: translateY(-1px); }
+.btn-secondary { background: var(--surface); color: var(--text); border: 1px solid var(--border); }
+.btn-secondary:hover { background: var(--card); }
+.btn-success { background: var(--accent2); color: #fff; }
+.btn-success:hover { background: #0a7a6e; }
+.btn-danger { background: rgba(233,69,96,0.15); color: var(--accent); border: 1px solid var(--accent); }
+.btn-danger:hover { background: var(--accent); color: #fff; }
+.btn-sm { padding: 5px 12px; font-size: 0.78rem; }
+.modal-actions { display: flex; gap: 8px; justify-content: flex-end; margin-top: 18px; }
+
+/* ════════════════════════════
+   OVERLAYS / MODALS
+════════════════════════════ */
+.overlay { position: fixed; inset: 0; background: rgba(0,0,0,0.65); display: none; align-items: center; justify-content: center; z-index: 300; backdrop-filter: blur(5px); }
+.overlay.open { display: flex; }
+
+.modal-box { background: var(--card2); border: 1px solid var(--border); border-radius: 20px; padding: 26px; width: 520px; max-width: 96vw; max-height: 90vh; overflow-y: auto; box-shadow: var(--shadow); animation: popIn 0.22s ease; }
+.modal-box::-webkit-scrollbar { width: 3px; }
+.modal-box h2 { font-family: 'Playfair Display', serif; font-size: 1.3rem; margin-bottom: 18px; display: flex; align-items: center; gap: 8px; }
+@keyframes popIn { from { opacity: 0; transform: scale(0.92); } to { opacity: 1; transform: scale(1); } }
+
+/* admin pass */
+.admin-modal { position: fixed; inset: 0; background: rgba(0,0,0,0.7); display: none; align-items: center; justify-content: center; z-index: 999; backdrop-filter: blur(6px); }
+.admin-modal.open { display: flex; }
+.admin-modal-box { background: var(--card2); border: 1px solid var(--border); border-radius: 20px; padding: 32px; width: 340px; box-shadow: var(--shadow); animation: popIn 0.2s ease; }
+.admin-modal-box h3 { font-family: 'Playfair Display', serif; font-size: 1.3rem; margin-bottom: 5px; }
+.admin-modal-box p { color: var(--muted); font-size: 0.83rem; margin-bottom: 20px; }
+
+/* ── Day checkboxes ── */
+.day-checkboxes { display: flex; gap: 5px; flex-wrap: wrap; }
+.day-cb-label { display: flex; flex-direction: column; align-items: center; gap: 4px; cursor: pointer; }
+.day-cb-label input { display: none; }
+.day-cb-box { width: 38px; height: 38px; border-radius: 9px; background: var(--surface); border: 2px solid var(--border); display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 700; color: var(--muted); transition: all 0.15s; user-select: none; }
+.day-cb-label input:checked + .day-cb-box { background: rgba(233,69,96,0.2); border-color: var(--accent); color: var(--text); }
+.day-cb-label:hover .day-cb-box { border-color: var(--accent); }
+
+/* ── Member chips ── */
+.member-select-grid { display: flex; gap: 6px; flex-wrap: wrap; }
+.member-select-chip { display: flex; align-items: center; gap: 5px; background: var(--surface); border: 1.5px solid var(--border); border-radius: 20px; padding: 4px 11px 4px 5px; cursor: pointer; font-size: 0.78rem; font-weight: 600; transition: all 0.15s; user-select: none; }
+.member-select-chip.selected { border-color: var(--accent2); background: rgba(15,155,142,0.15); }
+.member-chip-av { width: 20px; height: 20px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.5rem; font-weight: 800; color: #fff; }
+
+/* ── Color picker ── */
+.color-picker { display: flex; gap: 7px; flex-wrap: wrap; }
+.color-swatch { width: 28px; height: 28px; border-radius: 7px; cursor: pointer; border: 3px solid transparent; transition: transform 0.15s, border-color 0.15s; }
+.color-swatch:hover { transform: scale(1.15); }
+.color-swatch.selected { border-color: #fff; transform: scale(1.18); }
+
+/* ── Avatar color ── */
+.av-color-row { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 5px; }
+.av-color-opt { width: 26px; height: 26px; border-radius: 50%; cursor: pointer; border: 3px solid transparent; transition: all 0.15s; }
+.av-color-opt:hover { transform: scale(1.2); }
+.av-color-opt.selected { border-color: #fff; transform: scale(1.2); }
+
+/* ── Comments ── */
+.comments-list { display: flex; flex-direction: column; gap: 8px; margin-bottom: 12px; max-height: 170px; overflow-y: auto; }
+.comment-item { background: var(--surface); border-radius: 9px; padding: 9px 11px; }
+.comment-author { display: flex; align-items: center; gap: 5px; margin-bottom: 3px; }
+.comment-av { width: 16px; height: 16px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.45rem; font-weight: 800; color: #fff; }
+.comment-name { font-size: 0.72rem; font-weight: 700; }
+.comment-date { font-size: 0.65rem; color: var(--muted); margin-left: auto; }
+.comment-text { font-size: 0.8rem; color: var(--muted); }
+.comment-input-row { display: flex; gap: 7px; }
+.comment-input-row input { flex: 1; background: var(--surface); border: 1.5px solid var(--border); border-radius: 9px; padding: 7px 12px; font-family: 'Nunito', sans-serif; font-size: 0.83rem; color: var(--text); outline: none; }
+.comment-input-row input:focus { border-color: var(--accent); }
+
+/* ── Detail preview ── */
+.detail-postit-preview { border-radius: 11px; padding: 14px; margin-bottom: 18px; color: #1a1a2e; }
+.detail-postit-preview h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 5px; }
+.detail-postit-preview p { font-size: 0.83rem; opacity: 0.75; }
+
+/* ── Archive ── */
+.archive-list { display: flex; flex-direction: column; gap: 8px; max-height: 380px; overflow-y: auto; }
+.archive-item { background: var(--surface); border-radius: 9px; padding: 11px 13px; display: flex; align-items: center; gap: 10px; }
+.archive-item-color { width: 8px; height: 38px; border-radius: 4px; flex-shrink: 0; }
+.archive-item-info { flex: 1; }
+.archive-item-title { font-weight: 700; font-size: 0.85rem; }
+.archive-item-meta { font-size: 0.7rem; color: var(--muted); margin-top: 2px; }
+.archive-item-actions { display: flex; gap: 5px; }
+
+/* ── Members manage ── */
+.members-manage-list { display: flex; flex-direction: column; gap: 7px; margin-bottom: 14px; }
+.member-manage-item { display: flex; align-items: center; gap: 9px; background: var(--surface); border-radius: 9px; padding: 9px 13px; }
+.member-manage-av { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-size: 0.7rem; font-weight: 800; color: #fff; }
+.member-manage-info { flex: 1; }
+.member-manage-name { font-weight: 700; font-size: 0.87rem; }
+.member-manage-role { font-size: 0.7rem; color: var(--muted); }
+
+/* ── Confirm ── */
+.confirm-box { background: var(--card2); border: 1px solid var(--border); border-radius: 16px; padding: 26px; width: 320px; box-shadow: var(--shadow); animation: popIn 0.2s ease; text-align: center; }
+.confirm-box h3 { font-size: 1.05rem; font-weight: 700; margin-bottom: 8px; }
+.confirm-box p { color: var(--muted); font-size: 0.83rem; margin-bottom: 22px; }
+.confirm-actions { display: flex; gap: 8px; justify-content: center; }
+
+/* ── No results ── */
+.no-results { text-align: center; padding: 32px 16px; color: var(--muted); font-size: 0.83rem; }
+
+/* ── Loading spinner ── */
+.spinner { display: inline-block; width: 18px; height: 18px; border: 2px solid rgba(255,255,255,0.2); border-top-color: #fff; border-radius: 50%; animation: spin 0.6s linear infinite; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* ── Toast ── */
+.toast { position: fixed; bottom: 22px; left: 50%; transform: translateX(-50%) translateY(80px); background: var(--card); border: 1px solid var(--border); border-radius: 11px; padding: 11px 22px; font-size: 0.83rem; font-weight: 600; box-shadow: var(--shadow); z-index: 9999; transition: transform 0.3s ease; pointer-events: none; }
+.toast.show { transform: translateX(-50%) translateY(0); }
+.toast.success { border-color: var(--accent2); color: var(--accent2); }
+.toast.error { border-color: var(--accent); color: var(--accent); }
+
+/* scrollbars */
+::-webkit-scrollbar { width: 4px; height: 4px; }
+::-webkit-scrollbar-track { background: transparent; }
+::-webkit-scrollbar-thumb { background: var(--surface); border-radius: 10px; }
+
+/* loading overlay */
+.loading-screen { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 9998; flex-direction: column; gap: 16px; }
+.loading-screen.hidden { display: none; }
+.loading-screen p { color: var(--muted); font-size: 0.88rem; }
+</style>
+</head>
+<body>
+
+<!-- Loading -->
+<div class="loading-screen" id="loadingScreen">
+  <div class="spinner" style="width:32px;height:32px;border-width:3px;"></div>
+  <p>Conectando ao servidor...</p>
+</div>
+
+<!-- ══════════════════════════════
+     SETUP SCREEN
+════════════════════════════════ -->
+<div class="screen" id="screenSetup">
+  <div style="text-align:center;margin-bottom:6px;">
+    <div style="font-family:'Playfair Display',serif;font-size:2.2rem;font-weight:900;">
+      Família<span style="color:var(--accent)">Kanban</span>
+    </div>
+    <div style="color:var(--muted);font-size:0.88rem;margin-top:5px;">Organização familiar, do seu jeito.</div>
+  </div>
+  <div class="setup-card">
+    <h2>👋 Bem-vindo!</h2>
+    <p class="subtitle">Configure o perfil administrador. Ele será o único com permissão para gerenciar membros da família.</p>
+    <div class="form-group">
+      <label>Nome do Administrador</label>
+      <input type="text" id="setupName" placeholder="Ex: João Silva">
+    </div>
+    <div class="form-group">
+      <label>Senha do Admin</label>
+      <input type="password" id="setupPass" placeholder="Mínimo 4 caracteres">
+    </div>
+    <div class="form-group">
+      <label>Cor do Avatar</label>
+      <div class="av-color-row" id="setupColorRow"></div>
+    </div>
+    <button class="btn btn-primary" style="width:100%;margin-top:6px;" onclick="finishSetup()">
+      Criar conta Admin →
+    </button>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     LOGIN SCREEN
+════════════════════════════════ -->
+<div class="screen" id="screenLogin">
+  <div class="login-brand">
+    <h1>Família<span>Kanban</span></h1>
+    <p>Quem é você hoje?</p>
+  </div>
+  <div class="profiles-grid" id="profilesGrid"></div>
+</div>
+
+<!-- Admin pass modal -->
+<div class="admin-modal" id="adminPassModal">
+  <div class="admin-modal-box">
+    <h3>🔐 Área Admin</h3>
+    <p>Digite a senha do administrador para continuar.</p>
+    <div class="form-group">
+      <label>Senha</label>
+      <input type="password" id="adminPassInput" placeholder="••••••" onkeydown="if(event.key==='Enter') confirmAdminLogin()">
+    </div>
+    <div style="color:var(--accent);font-size:0.76rem;display:none;margin-bottom:10px;" id="adminPassError">Senha incorreta. Tente novamente.</div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary btn-sm" onclick="closeAdminPassModal()">Cancelar</button>
+      <button class="btn btn-primary btn-sm" onclick="confirmAdminLogin()">Entrar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     APP SCREEN
+════════════════════════════════ -->
+<div class="screen" id="screenApp">
+  <div class="topbar">
+    <div class="topbar-brand">Família<span>Kanban</span></div>
+    <div class="topbar-filters" id="topbarFilters">
+      <div class="filter-chip" id="chipPeriod" onclick="openPeriodFilter()">📅 Período</div>
+      <div class="filter-chip" id="chipType" onclick="cycleTypeFilter()">🔄 Tipo: Todos</div>
+      <div class="filter-sep"></div>
+      <div id="activeTagChips"></div>
+    </div>
+    <div class="topbar-right">
+      <div class="current-user-pill" onclick="logout()" title="Sair">
+        <div class="current-user-mini" id="topUserAv"></div>
+        <span class="current-user-name" id="topUserName"></span>
+        <span style="color:var(--muted);font-size:0.72rem;margin-left:2px;">↩</span>
+      </div>
+      <button class="btn-new-activity" onclick="openNewActivity()">+ Nova Atividade</button>
+    </div>
+  </div>
+
+  <div class="app-body">
+    <div class="sidebar">
+      <div class="sidebar-section">
+        <h4>Membros</h4>
+        <div id="sidebarMembers"></div>
+      </div>
+      <div class="sidebar-section">
+        <h4>Tags</h4>
+        <div class="tags-cloud" id="sidebarTags"></div>
+      </div>
+      <div class="sidebar-bottom">
+        <button class="sidebar-action-btn" onclick="openArchive()">📦 Arquivo Morto</button>
+        <div id="adminSidebarBtn"></div>
+      </div>
+    </div>
+
+    <div class="kanban-area" id="kanbanBoard"></div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     OVERLAY: Nova / Editar Atividade
+════════════════════════════════ -->
+<div class="overlay" id="overlayActivity">
+  <div class="modal-box">
+    <h2 id="actModalTitle">📝 Nova Atividade</h2>
+
+    <div class="form-group">
+      <label>Título *</label>
+      <input type="text" id="actTitle" placeholder="Ex: Consulta médica, Reunião escolar...">
+    </div>
+    <div class="form-group">
+      <label>Descrição</label>
+      <textarea id="actDesc" placeholder="Detalhes adicionais..."></textarea>
+    </div>
+
+    <!-- DIAS DA SEMANA — checkboxes -->
+    <div class="form-group" id="dayCheckboxesSection">
+      <label>Dias da semana *</label>
+      <div class="day-checkboxes" id="dayCheckboxes"></div>
+      <div id="dayDateHint" style="font-size:0.7rem;color:var(--muted);margin-top:4px;display:none;"></div>
+    </div>
+
+    <div class="form-row">
+      <div class="form-group">
+        <label>Tipo *</label>
+        <select id="actType" onchange="toggleRecurrence()">
+          <option value="single">📌 Atividade Única</option>
+          <option value="recurring">🔁 Recorrente (semanal)</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Horário início</label>
+        <input type="time" id="actTimeStart">
+      </div>
+    </div>
+    <div class="form-row">
+      <div class="form-group" id="singleDateGroup">
+        <label>Data *</label>
+        <input type="date" id="actDate" onchange="syncDayFromDate()">
+      </div>
+      <div class="form-group" id="vigenciaGroup" style="display:none;">
+        <label>Vigência final *</label>
+        <input type="date" id="actVigencia">
+      </div>
+      <div class="form-group">
+        <label>Horário fim</label>
+        <input type="time" id="actTimeEnd">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Tags (use # separado por espaços)</label>
+      <input type="text" id="actTags" placeholder="#saude #escola #lazer">
+    </div>
+    <div class="form-group">
+      <label>Membros</label>
+      <div class="member-select-grid" id="actMembersGrid"></div>
+    </div>
+    <div class="form-group">
+      <label>Cor do Post-it</label>
+      <div class="color-picker" id="actColorPicker"></div>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeOverlay('overlayActivity')">Cancelar</button>
+      <button class="btn btn-primary" id="actSaveBtn" onclick="saveActivity()">Salvar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     OVERLAY: Detalhes
+════════════════════════════════ -->
+<div class="overlay" id="overlayDetail">
+  <div class="modal-box">
+    <h2>📌 Detalhes</h2>
+    <div class="detail-postit-preview" id="detailPreview"></div>
+    <div style="font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin-bottom:9px;">Comentários & Notas</div>
+    <div class="comments-list" id="commentsList"></div>
+    <div class="comment-input-row">
+      <input type="text" id="commentInput" placeholder="Adicionar comentário..." onkeydown="if(event.key==='Enter') addComment()">
+      <button class="btn btn-success btn-sm" onclick="addComment()">Enviar</button>
+    </div>
+    <div class="modal-actions" style="margin-top:14px;">
+      <button class="btn btn-secondary btn-sm" onclick="closeOverlay('overlayDetail')">Fechar</button>
+      <button class="btn btn-primary btn-sm" onclick="editCurrentDetail()">✏️ Editar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     OVERLAY: Arquivo Morto
+════════════════════════════════ -->
+<div class="overlay" id="overlayArchive">
+  <div class="modal-box">
+    <h2>📦 Arquivo Morto</h2>
+    <p style="color:var(--muted);font-size:0.82rem;margin-bottom:14px;">Atividades recorrentes com vigência encerrada.</p>
+    <div class="archive-list" id="archiveList"></div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeOverlay('overlayArchive')">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     OVERLAY: Admin Panel
+════════════════════════════════ -->
+<div class="overlay" id="overlayAdmin">
+  <div class="modal-box">
+    <h2>⚙️ Painel Admin</h2>
+    <div style="font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin-bottom:10px;">Membros da Família</div>
+    <div class="members-manage-list" id="membersManageList"></div>
+
+    <div style="border-top:1px solid var(--border);padding-top:14px;margin-top:6px;">
+      <div style="font-size:0.65rem;font-weight:800;text-transform:uppercase;letter-spacing:0.8px;color:var(--muted);margin-bottom:10px;">Adicionar Novo Membro</div>
+      <div class="form-row">
+        <div class="form-group">
+          <label>Nome</label>
+          <input type="text" id="newMemberName" placeholder="Nome do membro">
+        </div>
+        <div class="form-group">
+          <label>Cor do Avatar</label>
+          <div class="av-color-row" id="newMemberColorRow"></div>
+        </div>
+      </div>
+      <div class="form-group">
+        <label>Senha Admin (confirmação)</label>
+        <input type="password" id="newMemberAdminPass" placeholder="••••••">
+      </div>
+      <button class="btn btn-success btn-sm" onclick="addMember()">+ Adicionar Membro</button>
+    </div>
+
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="closeOverlay('overlayAdmin')">Fechar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     OVERLAY: Filtro Período
+════════════════════════════════ -->
+<div class="overlay" id="overlayPeriod">
+  <div class="modal-box" style="width:340px;">
+    <h2>📅 Filtrar por Período</h2>
+    <div class="form-row">
+      <div class="form-group"><label>De</label><input type="date" id="periodFrom"></div>
+      <div class="form-group"><label>Até</label><input type="date" id="periodTo"></div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="clearPeriodFilter()">Limpar</button>
+      <button class="btn btn-primary" onclick="applyPeriodFilter()">Aplicar</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     OVERLAY: Confirmar Exclusão
+════════════════════════════════ -->
+<div class="overlay" id="overlayConfirm">
+  <div class="confirm-box" id="confirmBox">
+    <h3 id="confirmTitle">🗑️ Excluir atividade?</h3>
+    <p id="confirmMsg">Esta ação não pode ser desfeita.</p>
+    <div class="confirm-actions" id="confirmActions">
+      <button class="btn btn-secondary btn-sm" onclick="closeOverlay('overlayConfirm')">Cancelar</button>
+      <button class="btn btn-danger btn-sm" onclick="confirmDelete('single')">Excluir</button>
+    </div>
+  </div>
+</div>
+
+<!-- ══════════════════════════════
+     OVERLAY: Novo membro (login)
+════════════════════════════════ -->
+<div class="overlay" id="overlayAddMemberLogin">
+  <div class="modal-box" style="width:360px;">
+    <h2>➕ Novo Membro</h2>
+    <p style="color:var(--muted);font-size:0.82rem;margin-bottom:14px;">Apenas o admin pode adicionar membros.</p>
+    <div class="form-group"><label>Senha Admin</label><input type="password" id="addMemberAdminPassLogin" placeholder="••••••"></div>
+    <div class="form-group"><label>Nome do novo membro</label><input type="text" id="addMemberNameLogin" placeholder="Nome"></div>
+    <div class="form-group"><label>Cor do Avatar</label><div class="av-color-row" id="addMemberColorLogin"></div></div>
+    <div style="color:var(--accent);font-size:0.76rem;display:none;margin-bottom:8px;" id="addMemberLoginError">Senha incorreta.</div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary btn-sm" onclick="closeOverlay('overlayAddMemberLogin')">Cancelar</button>
+      <button class="btn btn-primary btn-sm" onclick="addMemberFromLogin()">Criar</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+// ═══════════════════════════════════════════════════════
+//  CONFIG
+// ═══════════════════════════════════════════════════════
+// ⚠️ Altere para o endereço do seu backend
+const API = 'http://localhost:3001/api';
+
+const DAYS_FULL  = ['Segunda-feira','Terça-feira','Quarta-feira','Quinta-feira','Sexta-feira','Sábado','Domingo'];
+const DAYS_SHORT = ['Seg','Ter','Qua','Qui','Sex','Sáb','Dom'];
+
+const COLORS = {
+  yellow:'#fef08a', pink:'#fda4af', blue:'#93c5fd',
+  green:'#86efac',  orange:'#fdba74', purple:'#c4b5fd',
+  teal:'#5eead4',   red:'#fca5a5'
+};
+const AV_COLORS = ['#e94560','#0f9b8e','#3a86ff','#f5c842','#8b5cf6','#f97316','#10b981','#ef4444'];
+
+// ── App state ────────────────────────────────────────────
+let appState = {
+  members: [],
+  activities: [],
+  currentUser: null,        // member object
+  filters: { members:[], tags:[], type:'all', periodFrom:null, periodTo:null },
+  editingId: null,
+  deletingId: null,
+  detailId: null,
+  selectedColor: 'yellow',
+  selectedAvColor: AV_COLORS[0],
+  newMemberColor: AV_COLORS[2],
+  addMemberLoginColor: AV_COLORS[3],
+};
+
+// Persist current user across page refresh
+function saveSession() {
+  if (appState.currentUser) localStorage.setItem('fk_user', JSON.stringify(appState.currentUser));
+  else localStorage.removeItem('fk_user');
+}
+function loadSession() {
+  try { const r = localStorage.getItem('fk_user'); return r ? JSON.parse(r) : null; } catch { return null; }
+}
+
+// ═══════════════════════════════════════════════════════
+//  UTILS
+// ═══════════════════════════════════════════════════════
+// Normaliza _id para string (garante comparações corretas)
+function normId(id) { return id ? String(id) : id; }
+function normalizeActivity(a) {
+  if (!a) return a;
+  return {
+    ...a,
+    _id: normId(a._id),
+    memberIds: (a.memberIds||[]).map(m =>
+      typeof m === 'object' && m !== null
+        ? { ...m, _id: normId(m._id) }
+        : normId(m)
+    ),
+  };
+}
+
+function formatDate(d) {
+  if (!d) return '—';
+  const p = d.split('-');
+  return p.length === 3 ? p[2]+'/'+p[1]+'/'+p[0] : d;
+}
+
+function initials(name) {
+  const p = name.trim().split(' ');
+  return p.length >= 2 ? (p[0][0]+p[1][0]).toUpperCase() : name.slice(0,2).toUpperCase();
+}
+function esc(s) {
+  return String(s).replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;');
+}
+function genId() { return Math.random().toString(36).slice(2); }
+function showToast(msg, type='') {
+  const t = document.getElementById('toast');
+  t.textContent = msg; t.className = 'toast '+type; t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 2800);
+}
+function showScreen(id) {
+  document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
+  document.getElementById(id).classList.add('active');
+}
+function openOverlay(id)  { document.getElementById(id).classList.add('open'); }
+function closeOverlay(id) { document.getElementById(id).classList.remove('open'); }
+
+function setLoading(show) {
+  document.getElementById('loadingScreen').classList.toggle('hidden', !show);
+}
+
+// ═══════════════════════════════════════════════════════
+//  API CALLS
+// ═══════════════════════════════════════════════════════
+async function api(method, path, body) {
+  const opts = { method, headers: { 'Content-Type': 'application/json' } };
+  if (body) opts.body = JSON.stringify(body);
+  const res = await fetch(API + path, opts);
+  const data = await res.json();
+  if (!res.ok) throw new Error(data.error || 'Erro na API');
+  return data;
+}
+
+// ═══════════════════════════════════════════════════════
+//  SETUP
+// ═══════════════════════════════════════════════════════
+function initSetupColorRow() {
+  const row = document.getElementById('setupColorRow');
+  row.innerHTML = '';
+  AV_COLORS.forEach((c, i) => {
+    const d = document.createElement('div');
+    d.className = 'av-color-opt' + (i===0?' selected':'');
+    d.style.background = c;
+    d.onclick = () => { appState.selectedAvColor = c; row.querySelectorAll('.av-color-opt').forEach(x=>x.classList.remove('selected')); d.classList.add('selected'); };
+    row.appendChild(d);
+  });
+  appState.selectedAvColor = AV_COLORS[0];
+}
+
+async function finishSetup() {
+  const name = document.getElementById('setupName').value.trim();
+  const pass = document.getElementById('setupPass').value;
+  if (!name) { showToast('Digite um nome.','error'); return; }
+  if (pass.length < 4) { showToast('Senha mínima de 4 caracteres.','error'); return; }
+  try {
+    await api('POST','/members/setup',{ name, color: appState.selectedAvColor, password: pass });
+    showToast('Admin criado!','success');
+    await loadMembersAndShowLogin();
+  } catch(e) { showToast(e.message,'error'); }
+}
+
+// ═══════════════════════════════════════════════════════
+//  LOGIN
+// ═══════════════════════════════════════════════════════
+async function loadMembersAndShowLogin() {
+  appState.members = await api('GET','/members');
+  renderProfilesGrid();
+  showScreen('screenLogin');
+}
+
+function renderProfilesGrid() {
+  const grid = document.getElementById('profilesGrid');
+  grid.innerHTML = '';
+  appState.members.forEach(m => {
+    const card = document.createElement('div');
+    card.className = 'profile-card';
+    card.innerHTML = `
+      ${m.isAdmin ? '<div class="profile-admin-badge">Admin</div>' : ''}
+      <div class="profile-avatar" style="background:${m.color}">${initials(m.name)}</div>
+      <div class="profile-name">${esc(m.name)}</div>
+    `;
+    card.onclick = () => selectProfile(m);
+    grid.appendChild(card);
+  });
+  // Add member button
+  const addCard = document.createElement('div');
+  addCard.className = 'profile-add-card';
+  addCard.innerHTML = `<div style="font-size:1.8rem;">+</div><div>Novo membro</div>`;
+  addCard.onclick = openAddMemberLogin;
+  grid.appendChild(addCard);
+}
+
+let pendingAdminMember = null;
+
+function selectProfile(m) {
+  if (m.isAdmin) {
+    pendingAdminMember = m;
+    document.getElementById('adminPassInput').value = '';
+    document.getElementById('adminPassError').style.display = 'none';
+    document.getElementById('adminPassModal').classList.add('open');
+    setTimeout(() => document.getElementById('adminPassInput').focus(), 100);
+  } else {
+    loginAs(m);
+  }
+}
+
+function closeAdminPassModal() {
+  document.getElementById('adminPassModal').classList.remove('open');
+  pendingAdminMember = null;
+}
+
+async function confirmAdminLogin() {
+  const pass = document.getElementById('adminPassInput').value;
+  try {
+    const { member } = await api('POST','/members/login',{ memberId: pendingAdminMember._id, password: pass });
+    document.getElementById('adminPassModal').classList.remove('open');
+    loginAs(member);
+  } catch {
+    document.getElementById('adminPassError').style.display = 'block';
+    document.getElementById('adminPassInput').value = '';
+    document.getElementById('adminPassInput').focus();
+  }
+}
+
+async function loginAs(member) {
+  appState.currentUser = member;
+  saveSession();
+  await loadAppData();
+  showScreen('screenApp');
+}
+
+function logout() {
+  appState.currentUser = null;
+  appState.filters = { members:[], tags:[], type:'all', periodFrom:null, periodTo:null };
+  saveSession();
+  loadMembersAndShowLogin();
+}
+
+// ═══════════════════════════════════════════════════════
+//  APP LOAD
+// ═══════════════════════════════════════════════════════
+async function loadAppData() {
+  const memberId = appState.currentUser._id;
+  const isAdmin  = appState.currentUser.isAdmin;
+  // Admin carrega TODAS as atividades para poder filtrar por membro na sidebar
+  const activitiesUrl = isAdmin ? '/activities' : `/activities?memberId=${memberId}`;
+  const [members, activities] = await Promise.all([
+    api('GET','/members'),
+    api('GET', activitiesUrl)
+  ]);
+  appState.members    = members;
+  appState.activities = activities.map(normalizeActivity);
+  renderTopUser();
+  renderSidebarMembers();
+  renderSidebarTags();
+  renderAdminBtn();
+  renderBoard();
+}
+
+// ── Top user ──────────────────────────────────────────────
+function renderTopUser() {
+  const m = appState.currentUser;
+  document.getElementById('topUserAv').style.background = m.color;
+  document.getElementById('topUserAv').textContent = initials(m.name);
+  document.getElementById('topUserName').textContent = m.name;
+}
+
+// ── Sidebar members ───────────────────────────────────────
+function renderSidebarMembers() {
+  const el = document.getElementById('sidebarMembers');
+  el.innerHTML = '';
+  appState.members.forEach(m => {
+    const active = appState.filters.members.includes(m._id);
+    const div = document.createElement('div');
+    div.className = 'sidebar-member' + (active?' active':'');
+    div.innerHTML = `
+      <div class="sidebar-member-av" style="background:${m.color}">${initials(m.name)}</div>
+      <span class="sidebar-member-name">${esc(m.name)}</span>
+      <div class="sidebar-member-check"></div>
+    `;
+    div.onclick = () => toggleMemberFilter(m._id);
+    el.appendChild(div);
+  });
+}
+
+function toggleMemberFilter(id) {
+  const idx = appState.filters.members.indexOf(id);
+  if (idx >= 0) appState.filters.members.splice(idx,1); else appState.filters.members.push(id);
+  renderSidebarMembers();
+  renderBoard();
+}
+
+// ── Sidebar tags ──────────────────────────────────────────
+function getAllTags() {
+  const set = new Set();
+  appState.activities.forEach(a => (a.tags||[]).forEach(t => set.add(t)));
+  return [...set].sort();
+}
+function renderSidebarTags() {
+  const el = document.getElementById('sidebarTags');
+  const tags = getAllTags();
+  if (!tags.length) { el.innerHTML = '<span style="color:var(--muted);font-size:0.72rem;">Nenhuma tag ainda</span>'; return; }
+  el.innerHTML = '';
+  tags.forEach(tag => {
+    const active = appState.filters.tags.includes(tag);
+    const p = document.createElement('div');
+    p.className = 'tag-pill' + (active?' active':'');
+    p.textContent = tag;
+    p.onclick = () => toggleTagFilter(tag);
+    el.appendChild(p);
+  });
+}
+function toggleTagFilter(tag) {
+  const idx = appState.filters.tags.indexOf(tag);
+  if (idx >= 0) appState.filters.tags.splice(idx,1); else appState.filters.tags.push(tag);
+  renderSidebarTags();
+  renderActiveTagChips();
+  renderBoard();
+}
+function renderActiveTagChips() {
+  const el = document.getElementById('activeTagChips');
+  el.innerHTML = '';
+  appState.filters.tags.forEach(tag => {
+    const chip = document.createElement('div');
+    chip.className = 'filter-chip active';
+    chip.innerHTML = `${esc(tag)} <span style="opacity:0.6;margin-left:2px;">✕</span>`;
+    chip.onclick = () => toggleTagFilter(tag);
+    el.appendChild(chip);
+  });
+}
+
+// ── Admin btn ─────────────────────────────────────────────
+function renderAdminBtn() {
+  const el = document.getElementById('adminSidebarBtn');
+  el.innerHTML = appState.currentUser.isAdmin
+    ? `<button class="sidebar-action-btn gold" onclick="openAdminPanel()">⚙️ Painel Admin</button>`
+    : '';
+}
+
+// ═══════════════════════════════════════════════════════
+//  BOARD
+// ═══════════════════════════════════════════════════════
+function getTodayDayIndex() {
+  const d = new Date().getDay(); return d === 0 ? 6 : d - 1;
+}
+
+function getFilteredActivities() {
+  return appState.activities.filter(a => {
+    if (a.archived) return false;
+    if (appState.filters.members.length > 0) {
+      const ok = a.memberIds.some(m => {
+        const id = m._id || m;
+        return appState.filters.members.includes(id);
+      });
+      if (!ok) return false;
+    }
+    if (appState.filters.tags.length > 0) {
+      if (!appState.filters.tags.every(t => (a.tags||[]).includes(t))) return false;
+    }
+    if (appState.filters.type !== 'all' && a.type !== appState.filters.type) return false;
+    if (appState.filters.periodFrom || appState.filters.periodTo) {
+      const from = appState.filters.periodFrom;
+      const to   = appState.filters.periodTo;
+      if (a.type === 'single') {
+        if (from && a.date < from) return false;
+        if (to   && a.date > to)   return false;
+      } else {
+        if (from && a.vigencia && a.vigencia < from) return false;
+        if (to   && a.date    && a.date    > to)     return false;
+      }
+    }
+    return true;
+  });
+}
+
+function renderBoard() {
+  const board = document.getElementById('kanbanBoard');
+  board.innerHTML = '';
+  const today = getTodayDayIndex();
+  const visible = getFilteredActivities();
+
+  DAYS_FULL.forEach((day, di) => {
+    const dayActs = visible.filter(a => (a.days||[]).includes(di));
+    const col = document.createElement('div');
+    col.className = 'kanban-col';
+    col.style.animationDelay = (di*0.04)+'s';
+
+    col.innerHTML = `
+      <div class="col-header">
+        <span class="col-day-name">${DAYS_SHORT[di]}</span>
+        ${di===today ? '<span class="col-today-badge">Hoje</span>' : ''}
+        <span class="col-count">${dayActs.length}</span>
+        <button class="col-add-btn" onclick="openNewActivity(${di})" title="Nova atividade">+</button>
+      </div>
+      <div class="col-cards" id="col-${di}"></div>
+    `;
+    board.appendChild(col);
+
+    const cardsEl = col.querySelector(`#col-${di}`);
+    if (!dayActs.length) {
+      cardsEl.innerHTML = '<div class="col-empty">Nada por aqui ✨</div>';
+    } else {
+      // Ordenação: 1º recorrentes (por hora), 2º únicas (por data, depois hora)
+      const sortKey = a => {
+        const typeOrder = a.type === 'recurring' ? 0 : 1;
+        const date      = a.type === 'single' ? (a.date || '9999-99-99') : '';
+        const time      = a.timeStart || '99:99';
+        return `${typeOrder}|${date}|${time}`;
+      };
+      dayActs
+        .sort((a, b) => sortKey(a).localeCompare(sortKey(b)))
+        .forEach(a => cardsEl.appendChild(buildPostit(a)));
+    }
+  });
+  renderSidebarTags();
+  renderActiveTagChips();
+}
+
+function buildPostit(a) {
+  const el = document.createElement('div');
+  el.className = 'postit' + (a.done?' done':'');
+  el.style.background = COLORS[a.color] || COLORS.yellow;
+
+  const members = (a.memberIds||[]).map(m => typeof m === 'object' ? m : appState.members.find(x=>x._id===m)).filter(Boolean);
+  const avatars  = members.map(m=>`<div class="postit-member-av" style="background:${m.color}" title="${m.name}">${initials(m.name)}</div>`).join('');
+  const tags     = (a.tags||[]).map(t=>`<div class="postit-tag" onclick="event.stopPropagation();toggleTagFilter('${esc(t)}')">${esc(t)}</div>`).join('');
+  const timeStr  = a.timeStart ? `<div class="postit-time">⏰ ${a.timeStart}${a.timeEnd?' – '+a.timeEnd:''}</div>` : '';
+  // Data: para atividade única mostra a data formatada com destaque
+  const dateVal  = a.type==='single' ? (a.date||'') : '';
+  const dateStr  = dateVal
+    ? `<div class="postit-date">📅 ${formatDate(dateVal)}</div>`
+    : '';
+  const comments = (a.comments||[]).length;
+
+  el.innerHTML = `
+    <div class="postit-top">
+      <div class="postit-title">${esc(a.title)}</div>
+      <div class="postit-actions">
+        <button class="postit-action" onclick="event.stopPropagation();toggleDone('${a._id}')" title="${a.done?'Reabrir':'Concluir'}">${a.done?'↩':'✓'}</button>
+        <button class="postit-action" onclick="event.stopPropagation();openEditActivity('${a._id}')" title="Editar">✏️</button>
+        <button class="postit-action" onclick="event.stopPropagation();askDelete('${a._id}')" title="Excluir">🗑</button>
+      </div>
+    </div>
+    ${a.desc?`<div class="postit-desc">${esc(a.desc)}</div>`:''}
+    ${dateStr}
+    ${timeStr}
+    ${tags?`<div class="postit-tags">${tags}</div>`:''}
+    <div class="postit-footer">
+      <div class="postit-members">${avatars}</div>
+      <div class="postit-badges">
+        ${a.type==='recurring'?'<span class="badge-recurrent">🔁</span>':''}
+        ${comments?`<span class="badge-comments">💬 ${comments}</span>`:''}
+      </div>
+    </div>
+  `;
+  el.addEventListener('click', () => openDetail(a._id));
+  return el;
+}
+
+// ═══════════════════════════════════════════════════════
+//  ACTIVITY FORM
+// ═══════════════════════════════════════════════════════
+function renderDayCheckboxes(selected=[], editMode=false) {
+  const el = document.getElementById('dayCheckboxes');
+  el.innerHTML = '';
+  // No modo edição, exibe aviso e bloqueia alteração de dia
+  if (editMode) {
+    const note = document.createElement('div');
+    note.style.cssText = 'font-size:0.72rem;color:var(--muted);margin-bottom:8px;width:100%;';
+    note.innerHTML = '⚠️ Na edição, o dia é fixo. Para mudar o dia, exclua este post-it e crie um novo.';
+    el.appendChild(note);
+  }
+  DAYS_SHORT.forEach((d, i) => {
+    const id = 'daycb_'+i;
+    const checked  = selected.includes(i) ? 'checked' : '';
+    const disabled = editMode ? 'disabled' : '';
+    const label = document.createElement('label');
+    label.className = 'day-cb-label';
+    label.style.opacity = editMode && !selected.includes(i) ? '0.3' : '1';
+    label.innerHTML = `
+      <input type="checkbox" id="${id}" value="${i}" ${checked} ${disabled}>
+      <div class="day-cb-box">${d}</div>
+    `;
+    el.appendChild(label);
+  });
+}
+
+function getSelectedDays() {
+  return [...document.querySelectorAll('#dayCheckboxes input:checked')].map(i=>parseInt(i.value));
+}
+
+function toggleRecurrence() {
+  const type = document.getElementById('actType').value;
+  const isSingle = type === 'single';
+  document.getElementById('singleDateGroup').style.display = isSingle ? '' : 'none';
+  document.getElementById('vigenciaGroup').style.display   = !isSingle ? '' : 'none';
+
+  // Para atividade única: desabilita checkboxes de dia (a data define o dia)
+  const daySection = document.getElementById('dayCheckboxesSection');
+  if (isSingle) {
+    daySection.style.opacity = '0.4';
+    daySection.style.pointerEvents = 'none';
+    daySection.title = 'Para atividade única o dia é definido pela data escolhida';
+    // Sincroniza checkbox com a data se já houver uma
+    syncDayFromDate();
+  } else {
+    daySection.style.opacity = '1';
+    daySection.style.pointerEvents = '';
+    daySection.title = '';
+  }
+}
+
+function syncDayFromDate() {
+  const dateVal = document.getElementById('actDate').value;
+  if (!dateVal) return;
+  // JS Date: 0=Dom,1=Seg...6=Sab → nosso índice: 0=Seg..6=Dom
+  const jsDay = new Date(dateVal + 'T12:00:00').getDay();
+  const ourDay = jsDay === 0 ? 6 : jsDay - 1;
+  // marca só o dia correspondente
+  document.querySelectorAll('#dayCheckboxes input[type=checkbox]').forEach(cb => {
+    cb.checked = parseInt(cb.value) === ourDay;
+  });
+}
+
+function renderActivityMembersGrid(selected=[]) {
+  const grid = document.getElementById('actMembersGrid');
+  grid.innerHTML = '';
+  appState.members.forEach(m => {
+    const selIds = selected.map(x => x._id||x);
+    const chip = document.createElement('div');
+    chip.className = 'member-select-chip' + (selIds.includes(m._id)?' selected':'');
+    chip.dataset.id = m._id;
+    chip.innerHTML = `<div class="member-chip-av" style="background:${m.color}">${initials(m.name)}</div>${esc(m.name)}`;
+    chip.onclick = () => chip.classList.toggle('selected');
+    grid.appendChild(chip);
+  });
+}
+
+function renderActivityColorPicker() {
+  const picker = document.getElementById('actColorPicker');
+  picker.innerHTML = '';
+  Object.entries(COLORS).forEach(([key,val]) => {
+    const sw = document.createElement('div');
+    sw.className = 'color-swatch' + (appState.selectedColor===key?' selected':'');
+    sw.style.background = val;
+    sw.onclick = () => { appState.selectedColor=key; picker.querySelectorAll('.color-swatch').forEach(s=>s.classList.remove('selected')); sw.classList.add('selected'); };
+    picker.appendChild(sw);
+  });
+}
+
+function openNewActivity(dayIndex) {
+  appState.editingId = null;
+  document.getElementById('actModalTitle').textContent = '📝 Nova Atividade';
+  document.getElementById('actTitle').value = '';
+  document.getElementById('actDesc').value  = '';
+  document.getElementById('actType').value  = 'single';
+  document.getElementById('actTimeStart').value = '';
+  document.getElementById('actTimeEnd').value   = '';
+  document.getElementById('actDate').value      = '';
+  document.getElementById('actVigencia').value  = '';
+  document.getElementById('actTags').value      = '';
+  appState.selectedColor = 'yellow';
+  const preselect = dayIndex !== undefined ? [dayIndex] : [getTodayDayIndex()];
+  renderDayCheckboxes(preselect);   // renderiza primeiro para toggleRecurrence poder acessar
+  toggleRecurrence();               // desabilita dias se tipo=single
+  renderActivityMembersGrid([appState.currentUser]);
+  renderActivityColorPicker();
+  openOverlay('overlayActivity');
+}
+
+function openEditActivity(id) {
+  const a = appState.activities.find(x => x._id===id);
+  if (!a) return;
+  appState.editingId = id;
+  document.getElementById('actModalTitle').textContent = '✏️ Editar Atividade';
+  document.getElementById('actTitle').value     = a.title;
+  document.getElementById('actDesc').value      = a.desc||'';
+  document.getElementById('actType').value      = a.type;
+  document.getElementById('actTimeStart').value = a.timeStart||'';
+  document.getElementById('actTimeEnd').value   = a.timeEnd||'';
+  // Para atividade única: garante que a data esteja preenchida no formulário
+  const fallbackDate = a.type === 'single' && !a.date
+    ? new Date().toISOString().split('T')[0]  // hoje como fallback
+    : (a.date||'');
+  document.getElementById('actDate').value      = fallbackDate;
+  document.getElementById('actVigencia').value  = a.vigencia||'';
+  document.getElementById('actTags').value      = (a.tags||[]).join(' ');
+  appState.selectedColor = a.color||'yellow';
+  // Na edição, mostra apenas o dia deste documento (cada post-it é independente)
+  renderDayCheckboxes(a.days||[], true);  // renderiza antes de toggleRecurrence
+  toggleRecurrence();
+  renderActivityMembersGrid(a.memberIds||[]);
+  renderActivityColorPicker();
+  openOverlay('overlayActivity');
+}
+
+function getSelectedMemberIds() {
+  return [...document.querySelectorAll('#actMembersGrid .member-select-chip.selected')].map(c=>c.dataset.id);
+}
+function parseTags(str) { return str.match(/#[\w\u00C0-\u024F]+/g)||[]; }
+
+async function saveActivity() {
+  const title    = document.getElementById('actTitle').value.trim();
+  const type     = document.getElementById('actType').value;
+  const days     = getSelectedDays();
+  const date     = document.getElementById('actDate').value;
+  const vigencia = document.getElementById('actVigencia').value;
+
+  if (!title) { showToast('Digite um título.','error'); return; }
+  // Na edição os checkboxes de dia ficam desabilitados — o dia vem do documento original
+  if (!appState.editingId && !days.length) { showToast('Selecione ao menos um dia.','error'); return; }
+  if (type==='single'    && !date)     { showToast('Informe a data.','error'); return; }
+  if (type==='recurring' && !vigencia) { showToast('Informe a vigência final.','error'); return; }
+
+  const baseBody = {
+    title, desc: document.getElementById('actDesc').value.trim(),
+    type,
+    date:     type==='single'    ? (date||null) : null,
+    vigencia: type==='recurring' ? (vigencia||null) : null,
+    timeStart: document.getElementById('actTimeStart').value,
+    timeEnd:   document.getElementById('actTimeEnd').value,
+    tags:      parseTags(document.getElementById('actTags').value),
+    memberIds: getSelectedMemberIds(),
+    color:     appState.selectedColor,
+  };
+
+  const btn = document.getElementById('actSaveBtn');
+  btn.innerHTML = '<div class="spinner"></div>';
+  btn.disabled = true;
+
+  try {
+    if (appState.editingId) {
+      // Edição: preserva dia original e garante que date não vire null
+      const orig = appState.activities.find(x => normId(x._id) === normId(appState.editingId));
+      const originalDay = orig ? orig.days[0] : days[0];
+      // Para single: usa a data do form; se ainda vazia, preserva a original
+      const resolvedDate = (baseBody.type === 'single')
+        ? (baseBody.date || (orig ? orig.date : null))
+        : null;
+      const payload = {
+        ...baseBody,
+        date: resolvedDate,
+        days: [originalDay],
+        archived: orig ? orig.archived : false,
+      };
+      // Captura o editingId antes do await para evitar que seja sobrescrito
+      const editingIdSnapshot = appState.editingId;
+      const updated = await api('PUT', `/activities/${editingIdSnapshot}`, payload);
+      // Substitui APENAS o documento editado no appState pelo retorno do PUT
+      // (evita recarregar todos e perder a ordem ou misturar dados)
+      const normalizedUpdated = normalizeActivity(updated);
+      const idx = appState.activities.findIndex(x => normId(x._id) === normId(editingIdSnapshot));
+      if (idx >= 0) {
+        appState.activities[idx] = normalizedUpdated;
+      } else {
+        appState.activities.push(normalizedUpdated);
+      }
+      showToast('Atividade atualizada!', 'success');
+    } else {
+      // Criação: backend cria um documento independente por dia — retorna array
+      const created = await api('POST', '/activities', { ...baseBody, days });
+      const arr = (Array.isArray(created) ? created : [created]).map(normalizeActivity);
+      arr.forEach(a => appState.activities.push(a));
+      showToast(arr.length > 1 ? `${arr.length} post-its criados (um por dia)!` : 'Atividade criada!', 'success');
+    }
+    closeOverlay('overlayActivity');
+    renderBoard();
+  } catch(e) { showToast(e.message, 'error'); }
+  finally { btn.innerHTML = 'Salvar'; btn.disabled = false; }
+}
+
+// ── Toggle done ─────────────────────────────────────────────
+async function toggleDone(id) {
+  try {
+    const { done } = await api('PATCH',`/activities/${id}/done`);
+    const a = appState.activities.find(x=>x._id===id);
+    if (a) { a.done = done; renderBoard(); }
+  } catch(e) { showToast(e.message,'error'); }
+}
+
+// ── Delete ────────────────────────────────────────────────
+function askDelete(id) {
+  const a = appState.activities.find(x => x._id === id);
+  appState.deletingId = id;
+
+  if (a && a.type === 'recurring') {
+    // Atividade recorrente: pergunta o escopo da exclusão
+    document.getElementById('confirmTitle').textContent = '🗑️ Excluir atividade recorrente?';
+    document.getElementById('confirmMsg').textContent   = 'Esta é uma atividade que se repete toda semana. O que deseja excluir?';
+    document.getElementById('confirmActions').innerHTML = `
+      <button class="btn btn-secondary btn-sm" onclick="closeOverlay('overlayConfirm')">Cancelar</button>
+      <button class="btn btn-danger btn-sm" style="font-size:0.74rem;" onclick="confirmDelete('single')">Só esta ocorrência</button>
+      <button class="btn btn-danger btn-sm" style="font-size:0.74rem;background:var(--accent);" onclick="confirmDelete('all')">Todas as ocorrências</button>
+    `;
+  } else {
+    // Atividade única: confirmação simples
+    document.getElementById('confirmTitle').textContent = '🗑️ Excluir atividade?';
+    document.getElementById('confirmMsg').textContent   = 'Esta ação não pode ser desfeita.';
+    document.getElementById('confirmActions').innerHTML = `
+      <button class="btn btn-secondary btn-sm" onclick="closeOverlay('overlayConfirm')">Cancelar</button>
+      <button class="btn btn-danger btn-sm" onclick="confirmDelete('single')">Excluir</button>
+    `;
+  }
+  openOverlay('overlayConfirm');
+}
+
+async function confirmDelete(scope) {
+  try {
+    const a = appState.activities.find(x => x._id === appState.deletingId);
+    if (!a) { closeOverlay('overlayConfirm'); return; }
+
+    if (scope === 'all' && a.type === 'recurring') {
+      // Exclui todos os post-its do mesmo grupo (mesmo título + recorrente)
+      const sameGroup = appState.activities.filter(x =>
+        x.type === 'recurring' && x.title === a.title
+      );
+      await Promise.all(sameGroup.map(x => api('DELETE', `/activities/${x._id}`)));
+      const ids = new Set(sameGroup.map(x => x._id));
+      appState.activities = appState.activities.filter(x => !ids.has(x._id));
+      showToast(sameGroup.length + ' ocorrência(s) excluída(s).');
+    } else {
+      // Exclui somente este post-it
+      await api('DELETE', `/activities/${appState.deletingId}`);
+      appState.activities = appState.activities.filter(x => x._id !== appState.deletingId);
+      showToast('Atividade excluída.');
+    }
+
+    closeOverlay('overlayConfirm');
+    closeOverlay('overlayDetail');
+    renderBoard();
+  } catch(e) { showToast(e.message, 'error'); }
+}
+
+// ═══════════════════════════════════════════════════════
+//  DETAIL / COMMENTS
+// ═══════════════════════════════════════════════════════
+function openDetail(id) {
+  const a = appState.activities.find(x=>x._id===id);
+  if (!a) return;
+  appState.detailId = id;
+
+  const members  = (a.memberIds||[]).map(m=>typeof m==='object'?m:appState.members.find(x=>x._id===m)).filter(Boolean);
+  const avatars  = members.map(m=>`<span style="display:inline-block;width:20px;height:20px;border-radius:50%;background:${m.color};margin-right:3px;text-align:center;line-height:20px;font-size:0.5rem;color:#fff;font-weight:800;">${initials(m.name)}</span>`).join('');
+  const tags     = (a.tags||[]).join(' ');
+  const daysStr  = (a.days||[]).map(d=>DAYS_SHORT[d]).join(', ');
+
+  const preview = document.getElementById('detailPreview');
+  preview.style.background = COLORS[a.color]||COLORS.yellow;
+  preview.innerHTML = `
+    <h3>${esc(a.title)}</h3>
+    ${a.desc?`<p style="margin-top:5px;">${esc(a.desc)}</p>`:''}
+    <div style="margin-top:8px;font-size:0.73rem;opacity:0.65;">
+      📅 ${daysStr}
+      ${a.timeStart?' · ⏰ '+a.timeStart+(a.timeEnd?' – '+a.timeEnd:''):''}
+      ${a.type==='recurring'
+        ? ' · 🔁 recorrente até ' + formatDate(a.vigencia)
+        : ' · 📅 ' + formatDate(a.date)}
+    </div>
+    ${tags?`<div style="margin-top:5px;font-size:0.7rem;opacity:0.7;">${esc(tags)}</div>`:''}
+    <div style="margin-top:7px;">${avatars}</div>
+  `;
+  renderComments(a);
+  document.getElementById('commentInput').value = '';
+  openOverlay('overlayDetail');
+}
+
+function renderComments(a) {
+  const list = document.getElementById('commentsList');
+  list.innerHTML = '';
+  (a.comments||[]).forEach(c => {
+    const authorId = c.authorId?._id || c.authorId;
+    const m = appState.members.find(x=>x._id===authorId);
+    const item = document.createElement('div');
+    item.className = 'comment-item';
+    const dateStr = new Date(c.date).toLocaleString('pt-BR',{day:'2-digit',month:'2-digit',hour:'2-digit',minute:'2-digit'});
+    item.innerHTML = `
+      <div class="comment-author">
+        <div class="comment-av" style="background:${m?m.color:'#888'}">${m?initials(m.name):'?'}</div>
+        <span class="comment-name">${m?esc(m.name):'Desconhecido'}</span>
+        <span class="comment-date">${dateStr}</span>
+      </div>
+      <div class="comment-text">${esc(c.text)}</div>
+    `;
+    list.appendChild(item);
+  });
+  list.scrollTop = list.scrollHeight;
+}
+
+async function addComment() {
+  const input = document.getElementById('commentInput');
+  const text  = input.value.trim();
+  if (!text) return;
+  try {
+    const comment = await api('POST',`/activities/${appState.detailId}/comments`,{
+      authorId: appState.currentUser._id, text
+    });
+    const a = appState.activities.find(x=>x._id===appState.detailId);
+    if (a) { if(!a.comments) a.comments=[]; a.comments.push(comment); renderComments(a); renderBoard(); }
+    input.value = '';
+  } catch(e) { showToast(e.message,'error'); }
+}
+
+function editCurrentDetail() { closeOverlay('overlayDetail'); openEditActivity(appState.detailId); }
+
+// ═══════════════════════════════════════════════════════
+//  FILTERS
+// ═══════════════════════════════════════════════════════
+const TYPE_CYCLE  = ['all','single','recurring'];
+const TYPE_LABELS = { all:'🔄 Tipo: Todos', single:'📌 Único', recurring:'🔁 Recorrente' };
+let typeIdx = 0;
+
+function cycleTypeFilter() {
+  typeIdx = (typeIdx+1) % 3;
+  appState.filters.type = TYPE_CYCLE[typeIdx];
+  const chip = document.getElementById('chipType');
+  chip.textContent = TYPE_LABELS[appState.filters.type];
+  chip.classList.toggle('active', appState.filters.type!=='all');
+  renderBoard();
+}
+
+function openPeriodFilter() {
+  document.getElementById('periodFrom').value = appState.filters.periodFrom||'';
+  document.getElementById('periodTo').value   = appState.filters.periodTo||'';
+  openOverlay('overlayPeriod');
+}
+function applyPeriodFilter() {
+  appState.filters.periodFrom = document.getElementById('periodFrom').value||null;
+  appState.filters.periodTo   = document.getElementById('periodTo').value||null;
+  const chip = document.getElementById('chipPeriod');
+  if (appState.filters.periodFrom||appState.filters.periodTo) {
+    chip.textContent = `📅 ${appState.filters.periodFrom||'…'} → ${appState.filters.periodTo||'…'} ✕`;
+    chip.classList.add('active');
+    chip.onclick = clearPeriodFilter;
+  } else {
+    chip.textContent = '📅 Período'; chip.classList.remove('active'); chip.onclick = openPeriodFilter;
+  }
+  closeOverlay('overlayPeriod');
+  renderBoard();
+}
+function clearPeriodFilter() {
+  appState.filters.periodFrom = appState.filters.periodTo = null;
+  const chip = document.getElementById('chipPeriod');
+  chip.textContent = '📅 Período'; chip.classList.remove('active'); chip.onclick = openPeriodFilter;
+  closeOverlay('overlayPeriod');
+  renderBoard();
+}
+
+// ═══════════════════════════════════════════════════════
+//  ARCHIVE
+// ═══════════════════════════════════════════════════════
+async function openArchive() {
+  const list     = document.getElementById('archiveList');
+  list.innerHTML = '<div class="no-results"><div class="spinner"></div></div>';
+  openOverlay('overlayArchive');
+  try {
+    const archived = await api('GET',`/activities/archive?memberId=${appState.currentUser._id}`);
+    if (!archived.length) { list.innerHTML='<div class="no-results">Nenhuma atividade arquivada.</div>'; return; }
+    list.innerHTML = '';
+    archived.forEach(a => {
+      const item = document.createElement('div');
+      item.className = 'archive-item';
+      const daysStr = (a.days||[]).map(d=>DAYS_SHORT[d]).join(', ');
+      item.innerHTML = `
+        <div class="archive-item-color" style="background:${COLORS[a.color]||COLORS.yellow}"></div>
+        <div class="archive-item-info">
+          <div class="archive-item-title">${esc(a.title)}</div>
+          <div class="archive-item-meta">${daysStr} · Encerrou em ${a.vigencia||'—'}</div>
+        </div>
+        <div class="archive-item-actions">
+          <button class="btn btn-success btn-sm" onclick="reactivate('${a._id}')">↺ Reativar</button>
+          <button class="btn btn-danger btn-sm" onclick="askDelete('${a._id}')">🗑</button>
+        </div>
+      `;
+      list.appendChild(item);
+    });
+  } catch(e) { list.innerHTML=`<div class="no-results">${e.message}</div>`; }
+}
+
+async function reactivate(id) {
+  closeOverlay('overlayArchive');
+  // Recarregar a atividade do backend para ter dados frescos
+  const a = await api('GET',`/activities?memberId=${appState.currentUser._id}`);
+  appState.activities = a;
+  openEditActivity(id);
+  // Quando salvar, o campo archived será false automaticamente via PUT
+}
+
+// ═══════════════════════════════════════════════════════
+//  ADMIN PANEL
+// ═══════════════════════════════════════════════════════
+let newMemberColorSelected = AV_COLORS[2];
+
+function openAdminPanel() {
+  renderMembersManageList();
+  renderNewMemberColorRow();
+  document.getElementById('newMemberName').value = '';
+  document.getElementById('newMemberAdminPass').value = '';
+  openOverlay('overlayAdmin');
+}
+function renderMembersManageList() {
+  const el = document.getElementById('membersManageList');
+  el.innerHTML = '';
+  appState.members.forEach(m => {
+    const item = document.createElement('div');
+    item.className = 'member-manage-item';
+    item.innerHTML = `
+      <div class="member-manage-av" style="background:${m.color}">${initials(m.name)}</div>
+      <div class="member-manage-info">
+        <div class="member-manage-name">${esc(m.name)}</div>
+        <div class="member-manage-role">${m.isAdmin?'👑 Administrador':'👤 Membro'}</div>
+      </div>
+      ${!m.isAdmin?`<button class="btn btn-danger btn-sm" onclick="removeMember('${m._id}')">Remover</button>`:''}
+    `;
+    el.appendChild(item);
+  });
+}
+function renderNewMemberColorRow() {
+  const row = document.getElementById('newMemberColorRow');
+  row.innerHTML = '';
+  AV_COLORS.forEach((c,i) => {
+    const d = document.createElement('div');
+    d.className = 'av-color-opt'+(i===2?' selected':'');
+    d.style.background = c;
+    d.onclick = () => { newMemberColorSelected=c; row.querySelectorAll('.av-color-opt').forEach(x=>x.classList.remove('selected')); d.classList.add('selected'); };
+    row.appendChild(d);
+  });
+  newMemberColorSelected = AV_COLORS[2];
+}
+async function addMember() {
+  const name      = document.getElementById('newMemberName').value.trim();
+  const adminPass = document.getElementById('newMemberAdminPass').value;
+  if (!name)      { showToast('Digite um nome.','error'); return; }
+  if (!adminPass) { showToast('Informe a senha admin.','error'); return; }
+  try {
+    const m = await api('POST','/members',{ name, color: newMemberColorSelected, adminPassword: adminPass });
+    appState.members.push(m);
+    document.getElementById('newMemberName').value = '';
+    document.getElementById('newMemberAdminPass').value = '';
+    renderMembersManageList();
+    renderSidebarMembers();
+    showToast(`${name} adicionado!`,'success');
+  } catch(e) { showToast(e.message,'error'); }
+}
+async function removeMember(id) {
+  const pass = prompt('Confirme a senha do admin para remover este membro:');
+  if (!pass) return;
+  try {
+    await api('DELETE',`/members/${id}`,{ adminPassword: pass });
+    appState.members = appState.members.filter(m=>m._id!==id);
+    renderMembersManageList();
+    renderSidebarMembers();
+    renderBoard();
+    showToast('Membro removido.');
+  } catch(e) { showToast(e.message,'error'); }
+}
+
+// ── Add member from login ─────────────────────────────────
+let addMemberLoginColorSelected = AV_COLORS[3];
+function openAddMemberLogin() {
+  document.getElementById('addMemberAdminPassLogin').value = '';
+  document.getElementById('addMemberNameLogin').value = '';
+  document.getElementById('addMemberLoginError').style.display = 'none';
+  renderAddMemberLoginColorRow();
+  openOverlay('overlayAddMemberLogin');
+}
+function renderAddMemberLoginColorRow() {
+  const row = document.getElementById('addMemberColorLogin');
+  row.innerHTML = '';
+  AV_COLORS.forEach((c,i) => {
+    const d = document.createElement('div');
+    d.className = 'av-color-opt'+(i===3?' selected':'');
+    d.style.background = c;
+    d.onclick = () => { addMemberLoginColorSelected=c; row.querySelectorAll('.av-color-opt').forEach(x=>x.classList.remove('selected')); d.classList.add('selected'); };
+    row.appendChild(d);
+  });
+  addMemberLoginColorSelected = AV_COLORS[3];
+}
+async function addMemberFromLogin() {
+  const pass = document.getElementById('addMemberAdminPassLogin').value;
+  const name = document.getElementById('addMemberNameLogin').value.trim();
+  if (!name) { showToast('Digite um nome.','error'); return; }
+  try {
+    const m = await api('POST','/members',{ name, color: addMemberLoginColorSelected, adminPassword: pass });
+    appState.members.push(m);
+    closeOverlay('overlayAddMemberLogin');
+    renderProfilesGrid();
+    showToast(`${name} adicionado!`,'success');
+  } catch(e) {
+    document.getElementById('addMemberLoginError').style.display = 'block';
+  }
+}
+
+// ═══════════════════════════════════════════════════════
+//  INIT
+// ═══════════════════════════════════════════════════════
+document.querySelectorAll('.overlay').forEach(ov => {
+  ov.addEventListener('click', e => { if(e.target===ov) ov.classList.remove('open'); });
+});
+
+async function init() {
+  setLoading(true);
+  try {
+    // Check if backend is reachable
+    await fetch(API+'/health');
+    const members = await api('GET','/members');
+    appState.members = members;
+
+    if (members.length === 0) {
+      // First run
+      initSetupColorRow();
+      showScreen('screenSetup');
+    } else {
+      // Check for saved session
+      const saved = loadSession();
+      if (saved) {
+        const fresh = members.find(m=>m._id===saved._id);
+        if (fresh) {
+          await loginAs(fresh);
+        } else {
+          renderProfilesGrid();
+          showScreen('screenLogin');
+        }
+      } else {
+        renderProfilesGrid();
+        showScreen('screenLogin');
+      }
+    }
+  } catch(e) {
+    // Backend offline
+    document.getElementById('loadingScreen').innerHTML = `
+      <div style="text-align:center;max-width:400px;padding:24px;">
+        <div style="font-size:2.5rem;margin-bottom:16px;">⚠️</div>
+        <div style="font-family:'Playfair Display',serif;font-size:1.4rem;margin-bottom:12px;">Backend não encontrado</div>
+        <div style="color:var(--muted);font-size:0.88rem;line-height:1.6;margin-bottom:20px;">
+          Certifique-se de que o servidor Node.js está rodando em <strong style="color:var(--text);">http://localhost:3001</strong><br><br>
+          Execute: <code style="background:var(--surface);padding:4px 10px;border-radius:6px;">npm run dev</code>
+        </div>
+        <button class="btn btn-primary" onclick="location.reload()">Tentar novamente</button>
+      </div>
+    `;
+    return;
+  } finally {
+    setLoading(false);
+  }
+}
+
+init();
+</script>
+</body>
+</html>
