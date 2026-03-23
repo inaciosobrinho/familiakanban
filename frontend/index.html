@@ -22,7 +22,7 @@
   --shadow:  0 8px 32px rgba(0,0,0,0.35);
 }
 * { box-sizing: border-box; margin: 0; padding: 0; }
-body { font-family: 'Nunito', sans-serif; background: #1a1a2e; color: #e8eaf6; min-height: 100vh; overflow: hidden; }
+body { font-family: 'Nunito', sans-serif; background: var(--bg); color: var(--text); min-height: 100vh; overflow: hidden; }
 
 /* ── SCREENS ── */
 .screen { display: none; width: 100vw; height: 100vh; }
@@ -487,7 +487,7 @@ body { font-family: 'Nunito', sans-serif; background: #1a1a2e; color: #e8eaf6; m
 <body>
 
 <!-- Loading -->
-<div class="loading-screen" id="loadingScreen" style="background:#1a1a2e;">
+<div class="loading-screen" id="loadingScreen">
   <div class="spinner" style="width:32px;height:32px;border-width:3px;"></div>
   <p>Conectando ao servidor...</p>
 </div>
@@ -791,30 +791,6 @@ body { font-family: 'Nunito', sans-serif; background: #1a1a2e; color: #e8eaf6; m
 <div class="toast" id="toast"></div>
 
 <script>
-// ── Diagnóstico de erros para mobile ──────────────────
-function showError(msg) {
-  var loadEl = document.getElementById('loadingScreen');
-  if (!loadEl) return;
-  loadEl.style.display = 'flex';
-  loadEl.style.background = '#1a1a2e';
-  loadEl.innerHTML =
-    '<div style="text-align:center;max-width:360px;padding:20px;color:#e8eaf6;">' +
-    '<div style="font-size:2rem;margin-bottom:12px;">⚠️</div>' +
-    '<div style="font-size:1rem;font-weight:700;margin-bottom:8px;">Erro na aplicação</div>' +
-    '<div style="font-size:0.72rem;color:#8892b0;margin-bottom:16px;word-break:break-all;text-align:left;background:#243358;padding:10px;border-radius:8px;">' + msg + '</div>' +
-    '<button onclick="location.reload()" style="background:#e94560;color:#fff;border:none;border-radius:9px;padding:10px 20px;font-size:0.85rem;cursor:pointer;font-family:sans-serif;">Recarregar</button>' +
-    '</div>';
-}
-
-window.onerror = function(msg, src, line, col, err) {
-  showError('JS Error: ' + msg + '<br>Linha ' + line + ' | ' + src);
-  return false;
-};
-
-window.addEventListener('unhandledrejection', function(e) {
-  showError('Promise Error: ' + (e.reason ? (e.reason.message || String(e.reason)) : 'unknown'));
-});
-
 // ═══════════════════════════════════════════════════════
 //  CONFIG
 // ═══════════════════════════════════════════════════════
@@ -1198,10 +1174,6 @@ function renderBoard() {
   });
   renderSidebarTags();
   renderActiveTagChips();
-  // Aplica layout mobile se necessário
-  if (typeof isMobile === 'function' && isMobile()) {
-    setTimeout(applyMobileLayout, 0);
-  }
 }
 
 function buildPostit(a) {
@@ -1788,24 +1760,20 @@ document.querySelectorAll('.overlay').forEach(ov => {
 async function init() {
   setLoading(true);
   try {
-    // Timeout de 10s para não travar em mobile
-    const fetchWithTimeout = (url, ms=10000) => {
-      const controller = new AbortController();
-      const tid = setTimeout(() => controller.abort(), ms);
-      return fetch(url, { signal: controller.signal }).finally(() => clearTimeout(tid));
-    };
-
-    await fetchWithTimeout(API + '/health');
-    const members = await api('GET', '/members');
+    // Check if backend is reachable
+    await fetch(API+'/health');
+    const members = await api('GET','/members');
     appState.members = members;
 
     if (members.length === 0) {
+      // First run
       initSetupColorRow();
       showScreen('screenSetup');
     } else {
+      // Check for saved session
       const saved = loadSession();
       if (saved) {
-        const fresh = members.find(m => m._id === saved._id);
+        const fresh = members.find(m=>m._id===saved._id);
         if (fresh) {
           await loginAs(fresh);
         } else {
@@ -1818,20 +1786,14 @@ async function init() {
       }
     }
   } catch(e) {
-    const isLocal = API.includes('localhost');
-    const loadEl = document.getElementById('loadingScreen');
-    loadEl.classList.remove('hidden');
-    loadEl.innerHTML = `
+    // Backend offline
+    document.getElementById('loadingScreen').innerHTML = `
       <div style="text-align:center;max-width:400px;padding:24px;">
         <div style="font-size:2.5rem;margin-bottom:16px;">⚠️</div>
-        <div style="font-family:'Playfair Display',serif;font-size:1.4rem;margin-bottom:12px;">
-          ${isLocal ? 'Backend não encontrado' : 'Erro ao conectar'}
-        </div>
-        <div style="color:var(--muted);font-size:0.85rem;line-height:1.6;margin-bottom:20px;">
-          ${isLocal
-            ? 'Execute <code style="background:#243358;padding:2px 8px;border-radius:5px;">npm run dev</code> na pasta backend.'
-            : 'Não foi possível conectar ao servidor. Verifique sua conexão e tente novamente.<br><br><small style="opacity:0.5;">' + e.message + '</small>'
-          }
+        <div style="font-family:'Playfair Display',serif;font-size:1.4rem;margin-bottom:12px;">Backend não encontrado</div>
+        <div style="color:var(--muted);font-size:0.88rem;line-height:1.6;margin-bottom:20px;">
+          Certifique-se de que o servidor Node.js está rodando em <strong style="color:var(--text);">http://localhost:3001</strong><br><br>
+          Execute: <code style="background:var(--surface);padding:4px 10px;border-radius:6px;">npm run dev</code>
         </div>
         <button class="btn btn-primary" onclick="location.reload()">Tentar novamente</button>
       </div>
@@ -1895,8 +1857,14 @@ function applyMobileLayout() {
   renderMobileDayNav();
 }
 
-// applyMobileLayout é chamado diretamente após renderBoard (sem override)
-// O override foi removido pois causava problemas em alguns browsers mobile
+// Override renderBoard para aplicar mobile após renderizar
+const _origRenderBoard = renderBoard;
+renderBoard = function() {
+  _origRenderBoard();
+  if (isMobile()) {
+    applyMobileLayout();
+  }
+};
 
 // Ao redimensionar janela
 window.addEventListener('resize', () => {
