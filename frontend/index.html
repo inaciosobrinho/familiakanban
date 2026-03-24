@@ -869,14 +869,25 @@ function showToast(msg, type='') {
   setTimeout(() => t.classList.remove('show'), 2800);
 }
 function showScreen(id) {
+  // Esconde loading
+  setLoading(false);
   document.querySelectorAll('.screen').forEach(s => s.classList.remove('active'));
-  document.getElementById(id).classList.add('active');
+  var el = document.getElementById(id);
+  if (el) el.classList.add('active');
 }
 function openOverlay(id)  { document.getElementById(id).classList.add('open'); }
 function closeOverlay(id) { document.getElementById(id).classList.remove('open'); }
 
 function setLoading(show) {
-  document.getElementById('loadingScreen').classList.toggle('hidden', !show);
+  var el = document.getElementById('loadingScreen');
+  if (!el) return;
+  if (show) {
+    el.classList.remove('hidden');
+    el.style.display = 'flex';
+  } else {
+    el.classList.add('hidden');
+    el.style.display = 'none';
+  }
 }
 
 // ═══════════════════════════════════════════════════════
@@ -1528,7 +1539,7 @@ function renderComments(a) {
   const list = document.getElementById('commentsList');
   list.innerHTML = '';
   (a.comments||[]).forEach(c => {
-    const authorId = c.authorId?._id || c.authorId;
+    const authorId = (c.authorId && c.authorId._id) ? c.authorId._id : c.authorId;
     const m = appState.members.find(x=>x._id===authorId);
     const item = document.createElement('div');
     item.className = 'comment-item';
@@ -1761,7 +1772,13 @@ async function init() {
   setLoading(true);
   try {
     // Check if backend is reachable
-    await fetch(API+'/health');
+    // Timeout 10s — compatível com Safari iOS antigo
+    await Promise.race([
+      fetch(API + '/health'),
+      new Promise(function(_, rej) {
+        setTimeout(function() { rej(new Error('timeout')); }, 10000);
+      })
+    ]);
     const members = await api('GET','/members');
     appState.members = members;
 
